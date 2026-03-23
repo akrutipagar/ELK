@@ -14,6 +14,28 @@ MODEL          = "llama3:latest"
 OLLAMA_TIMEOUT = 60  
 ES_TIMEOUT     = 10   
 
+INTENT_SYSTEM_PROMPT = """
+You are a log query intent parser for an application log search system.
+ 
+The user may type messy, incomplete, or gibberish queries. Your job is to extract
+the intent and rewrite it as a clean, precise log search question.
+ 
+Available log fields you can reference:
+- message          → the log text content
+- @timestamp       → when the log was created
+- host.hostname    → which server/host
+- log.level        → severity (ERROR, WARN, INFO, DEBUG)
+- log.file.path    → which log file
+ 
+Rules:
+- Output ONLY the cleaned question as plain text — no JSON, no explanation
+- Preserve all important keywords (error names, hostnames, status codes, actions)
+- Infer intent from partial words: "authn fail" → "authentication failures",
+  "err" → "errors", "cnt" or "cnt" → "count", "lst" → "list"
+- If the user seems to want a count, include "count" in the cleaned question
+- If the user seems to want recent entries, include "latest" or "recent"
+- If the input is completely uninterpretable, output: UNCLEAR
+""".strip()
 
 DSL_SYSTEM_PROMPT = """
 You generate Elasticsearch 8+ Query DSL.
@@ -46,9 +68,21 @@ Rules:
 - If results are empty, say so clearly and suggest why
 """.strip()
 
+def normalise_input(user_text: str) -> str:
+   
+    payload = {
+        "model": MODEL,
+        "messages": [
+            {"role": "system", "content": INTENT_SYSTEM_PROMPT},
+            {"role": "user",   "content": user_text},
+        ],
+        "stream": False,
+    }
+    cleaned = _call_ollama(payload).strip()
+    return cleaned
 
 def generate_dsl(user_text: str) -> dict:
-    """Call Ollama and return a parsed Elasticsearch DSL dict."""
+    
     payload = {
         "model": MODEL,
         "messages": [
@@ -62,7 +96,7 @@ def generate_dsl(user_text: str) -> dict:
 
 
 def generate_answer(user_question: str, es_result: dict) -> str:
-    """Second LLM call: turn raw ES results into a plain English answer."""
+    
 
     summary = _summarise_result(es_result)
 
@@ -81,10 +115,7 @@ def generate_answer(user_question: str, es_result: dict) -> str:
 
 
 def _summarise_result(result: dict) -> str:
-    """
-    Convert ES result into a compact text block for the LLM.
-    Avoids dumping the full raw response which can be huge.
-    """
+   
     lines = []
 
     hits_block = result.get("hits", {})
@@ -115,7 +146,7 @@ def _summarise_result(result: dict) -> str:
 
 
 def _call_ollama(payload: dict) -> str:
-    """POST to Ollama and return the assistant message content string."""
+    
     try:
         response = requests.post(OLLAMA_URL, json=payload, timeout=OLLAMA_TIMEOUT)
         response.raise_for_status()
@@ -128,7 +159,7 @@ def _call_ollama(payload: dict) -> str:
 
 
 def _parse_json_from_llm(raw: str) -> dict:
-    """Extract the first {...} block from LLM output and parse it."""
+   
     raw = re.sub(r"```(?:json)?", "", raw).strip()
     match = re.search(r"\{.*\}", raw, re.DOTALL)
     if not match:

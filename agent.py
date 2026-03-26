@@ -14,6 +14,13 @@ MODEL          = "llama3:latest"
 OLLAMA_TIMEOUT = 60  
 ES_TIMEOUT     = 10   
 
+OLLAMA_OPTIONS = {
+    "temperature":    0,
+    "top_k":          1,
+    "top_p":          1,
+    "repeat_penalty": 1.1,
+}
+
 INTENT_SYSTEM_PROMPT = """
 You are a log query intent parser for an application log search system.
  

@@ -21,6 +21,14 @@ OLLAMA_OPTIONS = {
     "repeat_penalty": 1.1,
 }
 
+
+ALLOWED_TOP_KEYS    = {"query", "aggs", "size", "sort", "from", "_source"}
+ALLOWED_LOG_FIELDS  = {"message", "@timestamp", "host.hostname", "log.level", "log.file.path"}
+ALLOWED_QUERY_OPS   = {"match", "match_phrase", "term", "terms", "range", "bool",
+                       "must", "should", "must_not", "filter", "exists"}
+BLOCKED_DSL_KEYS    = {"script", "script_score", "function_score", "pinned",
+                       "percolate", "wrapper", "more_like_this"}
+
 INTENT_SYSTEM_PROMPT = """
 You are a log query intent parser for an application log search system.
  

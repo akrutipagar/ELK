@@ -6,6 +6,12 @@ from elasticsearch import Elasticsearch
 from elasticsearch import Elasticsearch
 from elasticsearch import exceptions as es_exceptions
 from elasticsearch.exceptions import ApiError, TransportError
+import scrubadub
+import os
+import logging
+from datetime import datetime, timezone, timedelta
+
+
 
 ES_URL         = "http://localhost:9200"
 INDEX          = "application-logs-*"
@@ -13,6 +19,43 @@ OLLAMA_URL     = "http://localhost:11434/api/chat"
 MODEL          = "llama3:latest"
 OLLAMA_TIMEOUT = 60  
 ES_TIMEOUT     = 10   
+
+def _get_int_env(key: str, default: int, min_val: int = 1) -> int:
+   
+    raw = os.getenv(key, str(default))
+    try:
+        val = int(raw)
+        if val < min_val:
+            raise ValueError
+        return val
+    except ValueError:
+        sys.exit(f"Config error: {key}={raw!r} must be an integer >= {min_val}")
+
+def _get_url_env(key: str, default: str) -> str:
+    """Read a URL env var, validate it starts with http."""
+    val = os.getenv(key, default)
+    if not val.startswith("http"):
+        sys.exit(f"Config error: {key}={val!r} must be a valid http/https URL")
+    return val
+
+ES_URL         = _get_url_env("ES_URL",        "http://localhost:9200")
+INDEX          = os.getenv("ES_INDEX",          "application-logs-*")
+OLLAMA_URL     = _get_url_env("OLLAMA_URL",     "http://localhost:11434/api/chat")
+MODEL          = os.getenv("OLLAMA_MODEL",      "llama3")
+OLLAMA_TIMEOUT = _get_int_env("OLLAMA_TIMEOUT", 60)
+ES_TIMEOUT     = _get_int_env("ES_TIMEOUT",     10)
+MAX_SIZE       = _get_int_env("MAX_SIZE",        100)
+DEFAULT_HOURS  = _get_int_env("DEFAULT_HOURS",   24) 
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler("es_agent.log"),
+        logging.StreamHandler(sys.stderr),
+    ]
+)
+log = logging.getLogger("es_agent")
 
 OLLAMA_OPTIONS = {
     "temperature":    0,
@@ -22,12 +65,22 @@ OLLAMA_OPTIONS = {
 }
 
 
+scrubber = scrubadub.Scrubber()
+clean_text = scrubber.clean("Contact me at user@example.com")
+
+
 ALLOWED_TOP_KEYS    = {"query", "aggs", "size", "sort", "from", "_source"}
 ALLOWED_LOG_FIELDS  = {"message", "@timestamp", "host.hostname", "log.level", "log.file.path"}
 ALLOWED_QUERY_OPS   = {"match", "match_phrase", "term", "terms", "range", "bool",
                        "must", "should", "must_not", "filter", "exists"}
 BLOCKED_DSL_KEYS    = {"script", "script_score", "function_score", "pinned",
                        "percolate", "wrapper", "more_like_this"}
+
+def _default_time_filter() -> dict:
+    """Return a range filter for the last DEFAULT_HOURS hours."""
+    since = (datetime.now(timezone.utc) - timedelta(hours=DEFAULT_HOURS)).isoformat()
+    return {"range": {"@timestamp": {"gte": since}}}
+
 
 INTENT_SYSTEM_PROMPT = """
 You are a log query intent parser for an application log search system.
@@ -82,6 +135,33 @@ Rules:
 - Do not mention Elasticsearch, DSL, or JSON in your answer
 - If results are empty, say so clearly and suggest why
 """.strip()
+
+def _inject_time_filter(dsl: dict, user_asked_for_time: bool) -> dict:
+    """
+    Add a default time window to any query unless:
+    - User explicitly asked about timestamps / first-last / all time
+    - Query is a pure aggregation with no query block
+    """
+    if user_asked_for_time:
+        return dsl
+    if "query" not in dsl:
+        return dsl
+ 
+    existing_query = dsl["query"]
+ 
+    
+    if "@timestamp" in json.dumps(existing_query):
+        return dsl
+ 
+    
+    dsl["query"] = {
+        "bool": {
+            "must": [existing_query],
+            "filter": [_default_time_filter()]
+        }
+    }
+    log.info("Injected default time filter: last %dh", DEFAULT_HOURS)
+    return dsl
 
 def normalise_input(user_text: str) -> str:
    

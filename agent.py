@@ -77,11 +77,33 @@ BLOCKED_DSL_KEYS    = {"script", "script_score", "function_score", "pinned",
                        "percolate", "wrapper", "more_like_this"}
 
 def _default_time_filter() -> dict:
-    """Return a range filter for the last DEFAULT_HOURS hours."""
+    
     since = (datetime.now(timezone.utc) - timedelta(hours=DEFAULT_HOURS)).isoformat()
     return {"range": {"@timestamp": {"gte": since}}}
 
-
+def validate_dsl(dsl: dict) -> dict:
+    
+    
+    raw_str = json.dumps(dsl)
+    for bad in BLOCKED_DSL_KEYS:
+        if bad in raw_str:
+            raise ValueError(f"DSL contains blocked key '{bad}' — not allowed")
+ 
+   
+    bad_keys = set(dsl.keys()) - ALLOWED_TOP_KEYS
+    if bad_keys:
+        raise ValueError(f"DSL contains disallowed top-level keys: {bad_keys}")
+ 
+   
+    if "query" not in dsl and "aggs" not in dsl:
+        raise ValueError("DSL must contain 'query' or 'aggs'")
+ 
+    
+    dsl["size"] = min(int(dsl.get("size", 10)), MAX_SIZE)
+ 
+    log.info("DSL validated OK")
+    return dsl
+ 
 INTENT_SYSTEM_PROMPT = """
 You are a log query intent parser for an application log search system.
  
@@ -136,27 +158,21 @@ Rules:
 - If results are empty, say so clearly and suggest why
 """.strip()
 
-def _inject_time_filter(dsl: dict, user_asked_for_time: bool) -> dict:
-    """
-    Add a default time window to any query unless:
-    - User explicitly asked about timestamps / first-last / all time
-    - Query is a pure aggregation with no query block
-    """
+def inject_time_filter(dsl: dict, user_asked_for_time: bool) -> dict:
+    """Add a default last-24h filter unless user asked about time or query has no query block."""
+
+   
     if user_asked_for_time:
         return dsl
     if "query" not in dsl:
         return dsl
- 
-    existing_query = dsl["query"]
- 
-    
-    if "@timestamp" in json.dumps(existing_query):
+    if "@timestamp" in json.dumps(dsl["query"]):
         return dsl
- 
+
     
     dsl["query"] = {
         "bool": {
-            "must": [existing_query],
+            "must":   [dsl["query"]],
             "filter": [_default_time_filter()]
         }
     }

@@ -1,19 +1,240 @@
-----------------------------------------------------------------------------------------------
-Log Analytics Agent
-----------------------------------------------------------------------------------------------
+# 🔍 Log Analytics Agent
 
-Natural language → Elasticsearch DSL → Plain English answer
-Ask questions about your logs in plain English. Get real answers backed by live data.
-----------------------------------------------------------------------------------------------
-Overview
-----------------------------------------------------------------------------------------------
-Log Analytics Agent is a local, secure, and deterministic AI-powered observability tool that converts natural language queries into Elasticsearch DSL, executes them, and returns human-readable insights.
+**LLM-Powered Observability — Natural Language → Elasticsearch DSL → Plain English**
 
-It is designed with:
+Stop writing Elasticsearch queries manually. Ask questions in plain English (typos, abbreviations included) and get answers backed by live log data.
 
-Deterministic outputs (temperature = 0)
-Security-first DSL validation
-Template-based optimization (skip LLM when possible)
-Local LLM execution (no data leaves your machine)
+---
 
+## 🚀 Overview
+
+Log Analytics Agent is a **local, secure, and deterministic AI-powered observability tool** that converts natural language queries into Elasticsearch DSL, executes them, and returns human-readable insights.
+
+Key principles:
+- Deterministic outputs (temperature = 0)
+- Security-first DSL validation
+- Template-based optimization (skip LLM when possible)
+- Fully local execution (Ollama + Llama3)
+
+---
+
+## ✨ Features
+
+- Natural language → Elasticsearch DSL
+- Intent templates for instant responses (no LLM needed)
+- DSL validation layer to prevent unsafe queries
+- Sensitive data redaction (emails, IPs, tokens, etc.)
+- Plain English summaries of results
+- Fully local (no external API calls)
+- Default time window injection (last 24h)
+
+---
+
+## 🧪 Example
+
+```bash
+$ python main.py
+
+> authn failures last hour
+→ There were 1,075 authentication failures in the last 24 hours.
+
+> which host has most errors
+→ web-prod-02: 67% of total errors
+
+> how many nginx 500
+→ There were 342 nginx 500 errors in the last 24 hours.
+```
+
+---
+
+## 🏗 Architecture
+
+Every query follows a structured pipeline:
+
+1. Intent Normalization (LLM Call 1)
+   - Fix typos, expand abbreviations
+
+2. Intent Template Matching
+   - If matched → use prebuilt DSL (no LLM)
+   - Else → continue
+
+3. DSL Generation (LLM Call 2)
+   - Few-shot prompting
+   - Deterministic output
+
+4. DSL Validation
+   - Blocks unsafe keys
+   - Caps query size
+
+5. Elasticsearch Execution
+   - Default index: application-logs-*
+   - Default time filter: last 24h
+
+6. Redaction Layer
+   - Masks sensitive data
+
+7. Answer Formatting (LLM Call 3)
+   - Converts results into plain English
+
+---
+
+## 📁 Project Structure
+
+```
+log-analytics-agent/
+├── main.py
+├── config.py
+├── prompts.py
+├── pipeline.py
+├── templates.py
+├── ollama_client.py
+├── es_client.py
+├── summariser.py
+├── validator.py
+├── redactor.py
+├── requirements.txt
+├── .env.example
+└── .gitignore
+```
+
+---
+
+## ⚙️ Setup
+
+### Prerequisites
+
+- Ollama installed and running
+- Llama3 model:
+  ```
+  ollama pull llama3
+  ```
+- Elasticsearch 8+ running locally
+- Logs indexed under:
+  ```
+  application-logs-*
+  ```
+
+---
+
+### Installation
+
+```bash
+git clone https://github.com/akrutipagar/log-analytics-agent
+cd log-analytics-agent
+
+pip install -r requirements.txt
+cp .env.example .env
+
+python main.py
+```
+
+---
+
+## 🔧 Environment Variables
+
+| Variable        | Default                  | Description |
+|----------------|--------------------------|------------|
+| ES_URL         | http://localhost:9200   | Elasticsearch endpoint |
+| ES_INDEX       | application-logs-*      | Index pattern |
+| OLLAMA_MODEL   | llama3                  | LLM model |
+| DEFAULT_HOURS  | 24                      | Default time window |
+| MAX_SIZE       | 100                     | Max documents returned |
+| OLLAMA_TIMEOUT | 60                      | LLM timeout |
+| ES_TIMEOUT     | 10                      | ES timeout |
+
+---
+
+## 🧭 Runtime Commands
+
+| Command          | Description |
+|------------------|------------|
+| show dsl         | Toggle DSL display |
+| debug            | Enable verbose logging |
+| no time filter   | Disable default 24h filter |
+| exit             | Quit |
+
+---
+
+## 🧠 Intent Templates
+
+The system includes optimized templates that bypass the LLM:
+
+- Error count → "how many errors"
+- Auth failures → "login failed"
+- Latest logs → "show latest logs"
+- Errors by host → "which host has errors"
+- Breakdown → "count by level"
+- Timestamp range → "earliest log"
+
+These run instantly with zero hallucination risk.
+
+---
+
+## 🔐 Security Model
+
+- DSL Validator blocks unsafe keys (script, function_score, etc.)
+- Size limit prevents large scans
+- Redactor masks sensitive data
+- Local LLM ensures data never leaves your system
+
+---
+
+## 🧩 Design Decisions
+
+**Why 3 LLM calls?**  
+Splitting into normalization, DSL generation, and formatting improves reliability and debugging.
+
+**Why temperature = 0?**  
+Ensures deterministic and repeatable outputs.
+
+**Why templates before LLM?**  
+Faster, cheaper, and eliminates hallucination for common queries.
+
+**Why DSL validation?**  
+Prevents unsafe or malformed queries from reaching Elasticsearch.
+
+**Why redaction?**  
+Logs may contain sensitive data (emails, IPs, tokens).
+
+---
+
+## 🛠 Tech Stack
+
+- Python 3.10+
+- Llama3 via Ollama (local LLM)
+- Elasticsearch 8+
+- ELK Stack (Filebeat → Logstash → Elasticsearch)
+- requests (HTTP client)
+
+---
+
+## 📚 Key Learnings
+
+- Prompt engineering > model size for structured output
+- Determinism is critical in production systems
+- Pipeline decomposition improves reliability
+- Templates outperform LLMs for predictable queries
+- Validation layers are mandatory for safety
+
+---
+
+## 🗺 Roadmap
+
+- [x] 3-stage LLM pipeline
+- [x] Intent templates
+- [x] DSL validation
+- [x] Redaction layer
+- [ ] FastAPI REST API
+- [ ] Kibana dashboard generation
+- [ ] LangGraph-based orchestration
+- [ ] Unit tests
+
+---
+
+## 👩‍💻 Author
+
+Akruti Pagar  
+B.Tech Instrumentation & Control — Cummins College of Engineering  
+Diploma in Data Science & Programming — IIT Madras  
+AWS ML Associate
 

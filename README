@@ -10,11 +10,11 @@ The system is designed with a focus on determinism, security, and performance by
 
 ## Technologies Used
 
-**Backend:** Python  
-**LLM:** Llama3 (via Ollama)  
-**Search Engine:** Elasticsearch  
-**Pipeline:** ELK Stack (Filebeat, Logstash, Elasticsearch)  
-**HTTP Client:** Requests  
+- **Backend:** Python  
+- **LLM:** Llama3 (via Ollama)  
+- **Search Engine:** Elasticsearch  
+- **Pipeline:** ELK Stack (Filebeat, Logstash, Elasticsearch)  
+- **HTTP Client:** Requests  
 
 ---
 
@@ -22,92 +22,92 @@ The system is designed with a focus on determinism, security, and performance by
 
 | Component | Purpose |
 |----------|--------|
-| **Python** | Core language used to implement the query pipeline and orchestration logic. |
-| **Ollama (Llama3)** | Provides a locally hosted LLM for secure and offline natural language processing. |
-| **Elasticsearch** | Stores and retrieves log data efficiently using DSL-based queries. |
-| **Intent Templates** | Enables fast, deterministic execution for common queries without LLM dependency. |
-| **DSL Validator** | Ensures generated queries are safe, well-formed, and restricted from unsafe operations. |
-| **Redactor Module** | Masks sensitive data such as emails, IPs, and tokens before output processing. |
+| Python | Core language used to implement the query pipeline and orchestration logic |
+| Ollama (Llama3) | Provides a locally hosted LLM for secure and offline natural language processing |
+| Elasticsearch | Stores and retrieves log data efficiently using DSL-based queries |
+| Intent Templates | Enables fast, deterministic execution for common queries without LLM dependency |
+| DSL Validator | Ensures generated queries are safe, well-formed, and restricted from unsafe operations |
+| Redactor Module | Masks sensitive data such as emails, IPs, and tokens before output processing |
 
 ---
 
 ## System Architecture
 
 ### Input Processing
-- Accepts natural language queries including typos and abbreviations.  
-- Normalizes input using an LLM-based intent processor.
+- Accepts natural language queries including typos and abbreviations  
+- Normalizes input using an LLM-based intent processor  
 
 ### Intent Resolution
-- Matches query against predefined templates.  
-- If matched, directly generates DSL without invoking the LLM.  
-- If not matched, forwards query to DSL generation.
+- Matches query against predefined templates  
+- If matched, generates DSL without LLM  
+- Otherwise, forwards to DSL generation  
 
 ### DSL Generation
-- Uses LLM with deterministic settings to generate Elasticsearch DSL queries.  
-- Applies few-shot prompting for structured output.
+- Uses LLM with deterministic settings  
+- Applies structured prompting  
 
 ### Validation Layer
-- Validates generated DSL before execution.  
-- Blocks unsafe constructs such as scripts and enforces size limits.
+- Blocks unsafe constructs  
+- Enforces query size limits  
 
 ### Query Execution
-- Executes validated DSL on Elasticsearch.  
-- Applies a default time filter (last 24 hours).
+- Executes DSL on Elasticsearch  
+- Applies default time filter (last 24 hours)  
 
 ### Data Redaction
-- Masks sensitive fields such as emails, IPs, tokens, and identifiers.
+- Masks emails, IPs, tokens, and identifiers  
 
 ### Response Generation
-- Formats query results into plain English summaries.  
-- Uses LLM only for complex responses.
+- Converts results into plain English  
+- Uses LLM only when required  
 
 ---
 
 ## Features
 
-- Natural language querying for Elasticsearch logs  
-- Deterministic outputs using controlled LLM configuration  
-- Template-based query optimization for faster execution  
-- Secure DSL validation before execution  
-- Sensitive data masking and redaction  
-- Default time-based filtering for queries  
-- Fully local execution (no external API dependency)  
-- Modular and extensible pipeline design  
+- Natural language querying  
+- Deterministic outputs  
+- Template-based optimization  
+- Secure DSL validation  
+- Sensitive data masking  
+- Default time filtering  
+- Fully local execution  
+- Modular architecture  
 
 ---
 
 ## Setup and Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/akrutipagar/log-analytics-agent.git
-   cd log-analytics-agent
-   ```
+### 1. Clone the repository
+```bash
+git clone https://github.com/akrutipagar/log-analytics-agent.git
+cd log-analytics-agent
+```
 
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+### 2. Install dependencies
+```bash
+pip install -r requirements.txt
+```
 
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   ```
+### 3. Configure environment
+```bash
+cp .env.example .env
+```
 
-4. **Install and run Ollama**
-   ```bash
-   ollama pull llama3
-   ollama serve
-   ```
+### 4. Setup LLM
+```bash
+ollama pull llama3
+ollama serve
+```
 
-5. **Ensure Elasticsearch is running**
-   - Default URL: `http://localhost:9200`
-   - Logs indexed under: `application-logs-*`
+### 5. Ensure Elasticsearch is running
+- URL: http://localhost:9200  
+- Index: application-logs-*  
 
-6. **Run the application**
-   ```bash
-   python main.py
-   ```
+### 6. Run application
+```bash
+python main.py
+```
 
 ---
 
@@ -119,9 +119,9 @@ The system is designed with a focus on determinism, security, and performance by
 | ES_INDEX | application-logs-* | Index pattern |
 | OLLAMA_MODEL | llama3 | LLM model |
 | DEFAULT_HOURS | 24 | Default time window |
-| MAX_SIZE | 100 | Maximum documents returned |
-| OLLAMA_TIMEOUT | 60 | LLM timeout (seconds) |
-| ES_TIMEOUT | 10 | Elasticsearch timeout (seconds) |
+| MAX_SIZE | 100 | Max documents returned |
+| OLLAMA_TIMEOUT | 60 | LLM timeout |
+| ES_TIMEOUT | 10 | ES timeout |
 
 ---
 
@@ -129,39 +129,30 @@ The system is designed with a focus on determinism, security, and performance by
 
 | Command | Description |
 |--------|------------|
-| show dsl | Toggle DSL output visibility |
-| debug | Enable verbose logging |
-| no time filter | Disable default 24-hour filter |
-| exit | Terminate the application |
+| show dsl | Toggle DSL output |
+| debug | Enable verbose logs |
+| no time filter | Disable default time filter |
+| exit | Quit application |
 
 ---
 
 ## Design Considerations
 
-### Deterministic Output
-LLM calls are configured with temperature set to zero to ensure consistent and repeatable results.
-
-### Template-First Approach
-Common queries are handled using predefined templates to reduce latency and eliminate hallucination risks.
-
-### Secure Execution
-All generated DSL queries pass through a validation layer before execution to prevent unsafe operations.
-
-### Data Privacy
-Sensitive information in logs is masked before being processed or returned to the user.
-
-### Modular Pipeline
-The system is structured into independent modules for normalization, generation, validation, execution, and formatting.
+- **Deterministic Output:** Uses temperature = 0 for consistency  
+- **Template-First Approach:** Reduces latency and avoids hallucination  
+- **Secure Execution:** All DSL queries validated before execution  
+- **Data Privacy:** Sensitive fields masked before output  
+- **Modular Design:** Independent pipeline components  
 
 ---
 
 ## Future Enhancements
 
-- REST API interface using FastAPI  
-- Integration with Kibana dashboards  
-- Advanced query analytics and visualization  
-- LangGraph-based orchestration pipeline  
-- Unit and integration test coverage  
+- REST API using FastAPI  
+- Kibana dashboard integration  
+- Advanced analytics  
+- LangGraph orchestration  
+- Unit testing  
 
 ---
 

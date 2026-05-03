@@ -4,11 +4,16 @@ Log Analytics Agent
 
 Natural language → Elasticsearch DSL → Plain English answer
 Ask questions about your logs in plain English. Get real answers backed by live data.
+----------------------------------------------------------------------------------------------
+Overview
+----------------------------------------------------------------------------------------------
+Log Analytics Agent is a local, secure, and deterministic AI-powered observability tool that converts natural language queries into Elasticsearch DSL, executes them, and returns human-readable insights.
 
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-Architecture
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-Every query passes through a 3-stage LLM pipeline. 
-Common queries skip the LLM entirely via intent templates. 
-All LLM calls use temperature=0 for deterministic output.
+It is designed with:
+
+Deterministic outputs (temperature = 0)
+Security-first DSL validation
+Template-based optimization (skip LLM when possible)
+Local LLM execution (no data leaves your machine)
+
 

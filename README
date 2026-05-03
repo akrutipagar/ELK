@@ -1,6 +1,6 @@
-# Log Analytics Agent
+Log Analytics Agent
 
-## Overview
+Overview
 Log Analytics Agent is a lightweight, LLM-powered observability system that enables users to query Elasticsearch logs using natural language.  
 It converts user queries into Elasticsearch DSL, executes them securely, and returns results in plain English.
 
@@ -8,7 +8,7 @@ The system is designed with a focus on determinism, security, and performance by
 
 ---
 
-## Technologies Used
+Technologies Used
 
 - **Backend:** Python  
 - **LLM:** Llama3 (via Ollama)  
@@ -18,7 +18,7 @@ The system is designed with a focus on determinism, security, and performance by
 
 ---
 
-## Technology Rationale
+ Technology Rationale
 
 | Component | Purpose |
 |----------|--------|
@@ -31,39 +31,39 @@ The system is designed with a focus on determinism, security, and performance by
 
 ---
 
-## System Architecture
+System Architecture
 
-### Input Processing
+Input Processing
 - Accepts natural language queries including typos and abbreviations  
 - Normalizes input using an LLM-based intent processor  
 
-### Intent Resolution
+Intent Resolution
 - Matches query against predefined templates  
 - If matched, generates DSL without LLM  
 - Otherwise, forwards to DSL generation  
 
-### DSL Generation
+DSL Generation
 - Uses LLM with deterministic settings  
 - Applies structured prompting  
 
-### Validation Layer
+Validation Layer
 - Blocks unsafe constructs  
 - Enforces query size limits  
 
-### Query Execution
+Query Execution
 - Executes DSL on Elasticsearch  
 - Applies default time filter (last 24 hours)  
 
-### Data Redaction
+Data Redaction
 - Masks emails, IPs, tokens, and identifiers  
 
-### Response Generation
+Response Generation
 - Converts results into plain English  
 - Uses LLM only when required  
 
 ---
 
-## Features
+Features
 
 - Natural language querying  
 - Deterministic outputs  
@@ -76,7 +76,7 @@ The system is designed with a focus on determinism, security, and performance by
 
 ---
 
-## Setup and Installation
+Setup and Installation
 
 ### 1. Clone the repository
 ```bash
@@ -111,7 +111,7 @@ python main.py
 
 ---
 
-## Configuration
+Configuration
 
 | Variable | Default | Description |
 |---------|--------|------------|
@@ -125,7 +125,7 @@ python main.py
 
 ---
 
-## Runtime Commands
+Runtime Commands
 
 | Command | Description |
 |--------|------------|
@@ -136,7 +136,7 @@ python main.py
 
 ---
 
-## Design Considerations
+Design Considerations
 
 - **Deterministic Output:** Uses temperature = 0 for consistency  
 - **Template-First Approach:** Reduces latency and avoids hallucination  
@@ -146,7 +146,7 @@ python main.py
 
 ---
 
-## Future Enhancements
+Future Enhancements
 
 - REST API using FastAPI  
 - Kibana dashboard integration  
@@ -156,7 +156,7 @@ python main.py
 
 ---
 
-## Author
+Author
 
 Akruti Pagar  
 B.Tech Instrumentation & Control — Cummins College of Engineering  

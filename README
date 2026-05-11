@@ -80,8 +80,8 @@ Setup and Installation
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/akrutipagar/log-analytics-agent.git
-cd log-analytics-agent
+git clone https://github.com/akrutipagar/elk
+cd elk
 ```
 
 ### 2. Install dependencies
@@ -156,9 +156,4 @@ Future Enhancements
 
 ---
 
-Author
 
-Akruti Pagar  
-B.Tech Instrumentation & Control — Cummins College of Engineering  
-Diploma in Data Science & Programming — IIT Madras  
-AWS Machine Learning Associate  
